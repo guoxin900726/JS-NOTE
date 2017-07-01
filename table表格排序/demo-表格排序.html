@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        *{-webkit-user-select: none}
+        table{border: 1px solid lightseagreen;margin: 50px auto;}
+        th{width: 100px;height: 50px;background: lightskyblue;cursor: pointer;}
+        td{width: 100px;height: 50px;}
+
+    </style>
+</head>
+<body>
+
+<table id="table">
+    <thead id="thead">
+    <tr>
+        <th>姓名</th>
+        <th>性别</th>
+        <th>年龄</th>
+    </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+</table>
+
+<script src="kit.js"></script>
+<script>
+    //1、获取数据
+    var xhr=new XMLHttpRequest();
+    var data=null;
+    xhr.open("get","data.json",false);
+    xhr.onreadystatechange=function(){
+        if(xhr.readyState===4&&/^2\d{2}$/.test(xhr.status)){
+            var val=xhr.responseText;
+            data=kit.jsonparse(val);
+            console.log(data);}};
+
+    xhr.send(null);
+
+
+    //2、绑定数据
+    //因为JSON返回给我们的数据都是 二维数组（不是对象，所以要先获取对象中数组）
+    //    for(var i=0;i<data.length;i++){
+    //        var m=data[i];//m此时是个对象
+    //        var oli=document.createElement("p")
+    //        oli.innerHTML= m.name;
+    //        document.body.appendChild(oli)}
+    //这种方式会引发多次回流！！！
+    //var str="";
+    //    for(var i=0;i<data.length;i++){
+    //        var m=data[i];
+    //        str+="<p>"+ m.name+"</p>"}
+    //document.body.innerHTML=str//用innerHTML时，会替代里面的所有内容！！！！
+    //document.body.appendChild(str)//不会影响页面原有元素；
+    //文档碎片
+    //    var frg=document.createDocumentFragment();
+    //for(var i=0;i<data.length;i++){
+    //    var m=data[i];
+    //    oli=document.createElement("li")
+    //    oli.innerHTML= m.name;
+    //    frg.appendChild(oli)}
+    //document.body.appendChild(frg)
+    //    frg=null
+
+    //绑定数据：1、JSON为数组，先获取数组的每一项；2,在动态创建标签并内置内容；
+
+    var frg=document.createDocumentFragment();
+    var otable=document.getElementById("table");
+    var otbody=document.getElementById("tbody")
+    for(var i=0;i<data.length;i++){
+        var m=data[i];
+        var otr=document.createElement("tr")
+        for(var k in m){
+            var otd=document.createElement("td")
+            otd.innerHTML=m[k];
+            otd.style.textAlign="center";
+            otr.appendChild(otd);}
+        frg.appendChild(otr) }
+    otbody.appendChild(frg); //只有本次产生回流！！！
+    frg=null;
+
+
+    //回流，向页面内容推送的时候 会产生回流；
+
+    //隔行变色
+    var orows=otbody.rows;//数据获取最好写在最上面 否则执行函数 可能调用不到！！！
+    function changebg(){
+        for(var i=0;i<orows.length;i++){
+            orows[i].style.background= i%2===1?"lightgreen":"lightcyan"
+        }
+    }
+    changebg()
+    //排序
+    var ocells=otable.tHead.rows[0].cells
+    //var cells=orows.cells
+    var ary= kit.likearryay(orows);
+
+    //ocells[2].onclick=function(){
+    //    ary.sort(function(a,b){
+    //        return (parseFloat(a.cells[2].innerHTML)- parseFloat(b.cells[2].innerHTML))*flag
+    //    })//一定要有innerHTML 否则含有标签
+    //    flag=-flag;
+    //    var frg=document.createDocumentFragment();
+    //    for(var i=0;i<ary.length;i++){
+    //        frg.appendChild(ary[i])
+    //    }
+    //otbody.appendChild(frg)
+    //    frg=null;
+    //    changebg()
+    //}
+    //
+    //ocells[0].onclick=function(){
+    //    ary.sort(function(a,b){
+    //        return (a.cells[0].innerHTML.localeCompare(b.cells[0].innerHTML))*flag});
+    //    flag=-flag;
+    //    var frg=document.createDocumentFragment();
+    //    for(var i=0;i<ary.length;i++){
+    //        frg.appendChild(ary[i])
+    //    }
+    //    otbody.appendChild(frg)
+    //    frg=null;
+    //    changebg()
+    //
+    //}
+    //点击事件写成函数
+    // 1.分数字和拼音两种情况讨论；
+    // 2.但是都要重新写入到页面中；
+    // 3.都要重新隔行变色；
+    // 4.还要注意各行升降序互不影响
+    //多次写入事件，封装成函数，可以多次调用；
+    // 通用方法写在工具包中，以对象名来调用
+    //常用的可以封装在工具包里面，隔行变色，类数组转数组，JSON对象的转化
+
+    //实现多列排序，可以采用for循环,多个用for
+
+    //先点击，再排序，所以 排序要在点击的包裹里！！
+    //点击事件也是有数字顺序的，选择for循环！！！
+
+    for(var i=0;i<ocells.length;i++){
+        ocells[i].index=i;
+        ocells[i].flag=1;
+
+        ocells[i].onclick=function(){
+            var flag=this.flag;
+            var m=this.index;
+            ary.sort(function(a,b){
+                if(isNaN(a.cells[m].innerHTML)){return a.cells[m].innerHTML.localeCompare(b.cells[m].innerHTML)*flag }
+                return (a.cells[m].innerHTML- b.cells[m].innerHTML)*flag});
+            this.flag*=-1;
+
+            for(var k=0;k<ocells.length;k++){
+                if(k===this.index){this.flag*=1}
+                else{ocells[k].flag=1}}
+
+
+            var frg=document.createDocumentFragment();
+            for(var i=0;i<ary.length;i++){
+                frg.appendChild(ary[i])
+            }
+            otbody.appendChild(frg)
+            frg=null;
+            changebg()
+
+        }
+    }
+    //互不影响的flag 用自己的this指向，存储自己的值
+</script>
+
+</body>
+</html>

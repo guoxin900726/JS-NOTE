@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+table{margin: 50px auto;}
+        thead{background: mediumturquoise;}
+thead tr th{width: 150px;height: 50px;cursor: pointer}
+tbody{background: seashell}
+tbody tr td{width: 150px;height: 50px;text-align: center}
+    </style>
+</head>
+<body>
+<table id="table">
+   <thead>
+   <tr>
+   <th>name</th>
+   <th>sex</th>
+   <th>age</th>
+   </tr>
+   </thead>
+    <tbody></tbody>
+</table>
+<script src="kit.js"></script>
+<script>
+//获取数据
+var xhr = new XMLHttpRequest();
+var data = null;
+xhr.open("get", "data.json", false);
+xhr.onreadystatechange = function () {
+    if (xhr.readyState === 4 && /^2\d{2}$/.test(xhr.status)) {
+        var val = xhr.responseText;
+        data = kit.jsonparse(val);
+    }
+};
+xhr.send(null);
+
+//数据绑定页面
+
+//死数据写在页面，活数据需要绑定；___文档碎片
+var otable=document.getElementById("table")
+var othead=otable.tHead;
+var oths=othead.rows[0].cells;
+var otbody=otable.tBodies[0]
+ var frg=document.createDocumentFragment()
+    for(var i=0;i<data.length;i++){
+        var m=data[i];//获取的每一个m都是个对象
+           var otr=document.createElement("tr")
+        for(var k in m)//不确定对象长度，用for in 循环
+        {var otd=document.createElement("td")
+            otr.appendChild(otd)
+        otd.innerHTML=m[k];}
+    frg.appendChild(otr)
+    }
+    otbody.appendChild(frg)
+    frg=null;
+
+var otr=otbody.rows//创建后重新获取
+//隔行变色方法
+    function changebg(){
+        for(var i=0;i<otr.length;i++){
+           otr[i].style.background= i%2===0?null:"lightpink"
+        }
+    }
+changebg()
+
+//多列--点击--排序
+var ary=kit.likearryay(otr)
+    for(var i=0;i<oths.length;i++){
+        oths[i].index=i
+        oths[i].flag=1
+        oths[i].onclick=function(){
+            var index=this.index;
+            var flag=this.flag
+            //这个函数是个私有作用域，不能直接调用i，外面的i是循环完的最终值，所以想调用，必须存索引；
+          //排序：①首先一定是个数组，要比较的内容存成数组；②返回值是 针对值计算即可
+            ary.sort(function(a,b){
+                if(isNaN(a.cells[index])){ return (a.cells[index].innerHTML.localeCompare(b.cells[index].innerHTML)*flag)}
+                return (a.cells[index].innerHTML- b.cells[index].innerHTML)*flag//这个函数不能调用，this，是window，但是可以用call改变this值
+            })//ary.sort.call(this,回调函数)this可以直接指向oths[i]
+            this.flag*=-1//注意是原始值取反！！！不是变量取反！！ 每点击一次，都会重新赋值
+            var frg=document.createDocumentFragment()
+            for(var i=0;i<ary.length;i++){
+                frg.appendChild(ary[i])//此时ary里面是有内容的
+                }//向frg里面添加内容 不产生回流
+            otbody.appendChild(frg)
+            frg=null;
+            changebg()
+        for(var i=0;i<oths.length;i++){
+            if(i===this.index){this.flag*=1} //值不变的写法
+                else{oths[i].flag=1}
+        }
+
+
+
+        }
+        }
+
+
+
+//我们平时数组排序 都是在JS中，现在排序的是页面中的数组，所以要记得 appendchild
+
+</script>
+</body>
+</html>
